@@ -1,6 +1,6 @@
 import { expect as expectCDK, matchTemplate, MatchStyle } from '@aws-cdk/assert';
 import * as cdk from '@aws-cdk/core';
-import * as CdkAsgLoadbalancer from '../lib/cdk-asg-loadbalancer-stack';
+import * as CdkAsgLoadbalancer from '../lib/Infra/cdk-asg-loadbalancer-stack';
 
 test('Empty Stack', () => {
     const app = new cdk.App();
