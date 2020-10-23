@@ -6,12 +6,13 @@ import * as elbv2 from '@aws-cdk/aws-elasticloadbalancingv2';
 import * as Codedeploy from '@aws-cdk/aws-codedeploy';
 import { AutoScalingGroup } from '@aws-cdk/aws-autoscaling';
 import { Protocol, SubnetType, Vpc, WindowsVersion } from '@aws-cdk/aws-ec2';
-import { Aws, CfnOutput } from '@aws-cdk/core';
+import { Aws, CfnOutput, CfnParameter, Tag } from '@aws-cdk/core';
 import { ApplicationProtocol } from '@aws-cdk/aws-elasticloadbalancingv2';
 import { ServerDeploymentConfig } from '@aws-cdk/aws-codedeploy';
 import * as s3 from '@aws-cdk/aws-s3'; 
 import * as codepipeline from '@aws-cdk/aws-codepipeline'; 
 import * as codepipelineactions from '@aws-cdk/aws-codepipeline-actions';
+import * as ssm from '@aws-cdk/aws-ssm';
 
 //file system
 import * as fs from 'fs';
@@ -21,23 +22,27 @@ import { SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER } from 'constants';
 import { Action, CodeBuildAction, S3SourceAction } from '@aws-cdk/aws-codepipeline-actions';
 import { env } from 'process';
 
-
 export class CdkAsgLoadbalancerStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    env.region = 'eu-west-2';
+    //Tag the stack
+    Tag.add(this,'Client', this.node.tryGetContext('Suffix'));
 
     //Permissions
-    const instanceRole = new iam.Role(this,'InstanceRole', {
+    const instanceRole = new iam.Role(this,'InstanceRole' + this.node.tryGetContext('Suffix'), {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
     });
 
     instanceRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonEC2RoleforSSM'));
 
     //VPC
-    const ssVpc = new ec2.Vpc(this, 'VPC');
+    //const ssVpc = new ec2.Vpc(this, 'VPC');
+    const ssVpc = ec2.Vpc.fromLookup(this, 'VPC' + this.node.tryGetContext('Suffix'), {
+      isDefault: true
+    });
 
+    //http
     const httpPort = new ec2.Port({
       protocol: ec2.Protocol.TCP,
       fromPort: 80,
@@ -45,6 +50,7 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
       stringRepresentation: '80-80'
     });
 
+    //RDP
     const rdpPort = new ec2.Port({
       protocol: ec2.Protocol.TCP,
       fromPort: 3389,
@@ -53,8 +59,7 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
     });
 
     //Security
-
-    const lbSg = new ec2.SecurityGroup(this, 'lbSg', {
+    const lbSg = new ec2.SecurityGroup(this, 'lbSg' + this.node.tryGetContext('Suffix'), {
       vpc: ssVpc,
       allowAllOutbound: true,
       description: "Security group for the load balancer",
@@ -62,7 +67,7 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
 
     lbSg.addIngressRule(ec2.Peer.anyIpv4(), httpPort);
 
-    const instanceSg = new ec2.SecurityGroup(this, 'instanceSg', {
+    const instanceSg = new ec2.SecurityGroup(this, 'instanceSg' + this.node.tryGetContext('Suffix'), {
       vpc: ssVpc,
       allowAllOutbound: true,
       description: "Security group for the EC2 instance",
@@ -72,7 +77,7 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
     instanceSg.addIngressRule(ec2.Peer.anyIpv4(), rdpPort);
 
     //Auto scaling
-    const ssAsg = new autoscaling.AutoScalingGroup(this, 'ssAsg',{
+    const ssAsg = new autoscaling.AutoScalingGroup(this, 'Asg' + this.node.tryGetContext('Suffix'),{
       vpc: ssVpc,
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2,ec2.InstanceSize.SMALL),
       machineImage: ec2.MachineImage.latestWindows(WindowsVersion.WINDOWS_SERVER_2019_ENGLISH_CORE_CONTAINERSLATEST),
@@ -92,34 +97,29 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
     ssAsg.addSecurityGroup(instanceSg);
 
     //Load balancing
-    const ssLb = new elbv2.ApplicationLoadBalancer(this, 'ssLb', {
+    const ssLb = new elbv2.ApplicationLoadBalancer(this, 'Lb' + this.node.tryGetContext('Suffix'), {
       vpc: ssVpc,
       internetFacing: true,
       securityGroup: lbSg
     });
 
-    const ssListener = ssLb.addListener('ssListener', {
+    const ssListener = ssLb.addListener('Listener' + this.node.tryGetContext('Suffix'), {
       port: 80,
       open: true,
     })
     
-    const ssTg = ssListener.addTargets('ssTg', {
+    const ssTg = ssListener.addTargets('Tg' + this.node.tryGetContext('Suffix'), {
       port: 80,
       protocol: ApplicationProtocol.HTTP,
       targets: [ssAsg]
     });
 
-    //Output
-    new cdk.CfnOutput(this, 'LoadBalancerDNS', {
-      value: ssLb.loadBalancerDnsName
+    //CodeDeploy
+    const ssApp = new Codedeploy.ServerApplication(this, 'App' + this.node.tryGetContext('Suffix'),{
+      applicationName: 'DefaultApplication' + this.node.tryGetContext('Suffix')
     });
 
-    const ssApp = new Codedeploy.ServerApplication(this, 'ssApp',{
-      applicationName: 'DefaultApplication'
-    })
-
-    //CodeDeploy
-    const ssSdg = new Codedeploy.ServerDeploymentGroup(this, 'CodeDeploymentGroup', {
+    const ssSdg = new Codedeploy.ServerDeploymentGroup(this, 'DeploymentGroup' + this.node.tryGetContext('Suffix'), {
       application: ssApp,
       loadBalancer: Codedeploy.LoadBalancer.application(ssTg),
       deploymentConfig: ServerDeploymentConfig.ONE_AT_A_TIME,
@@ -128,40 +128,45 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
     });
 
     //s3 bucket to store our code
-    const ssBucket = s3.Bucket.fromBucketAttributes(this, 'SourceBucket', {
+    const ssBucket = s3.Bucket.fromBucketAttributes(this, 'SourceBucket' + this.node.tryGetContext('Suffix'), {
       bucketName: 'source-bucket-for-index-app',
     });
-    // const ssBucket = new s3.Bucket(this,'DeploymentBucket',{
-    //   versioned: true
-    // });
 
-    const ssPipeline = new codepipeline.Pipeline(this, 'DefaultPipeline',{
+    //CodePipeline
+    const ssPipeline = new codepipeline.Pipeline(this, 'DefaultPipeline' + this.node.tryGetContext('Suffix'),{
       
     });
     const ssSourceOutput = new codepipeline.Artifact();
     const ssSourceAction = new codepipelineactions.S3SourceAction({
       bucket: ssBucket,
       bucketKey: 'deployment/source.zip',
-      actionName: 'S3Source',
+      actionName: 'S3Source' + this.node.tryGetContext('Suffix'),
       output: ssSourceOutput,
      })
 
     ssPipeline.addStage({
-      stageName: 'Source',
+      stageName: 'Source' + this.node.tryGetContext('Suffix'),
       actions: [ssSourceAction],
     });
 
-      const ssDeployStage = ssPipeline.addStage({
-      stageName: 'Deploy',
+      ssPipeline.addStage({
+      stageName: 'Deploy' + this.node.tryGetContext('Suffix'),
+
       //Deploy website from s3 bucket DeploymentBucket
       actions: [
         new codepipelineactions.CodeDeployServerDeployAction({
-          actionName: 'Website',
+          actionName: 'Website' + this.node.tryGetContext('Suffix'),
           input: ssSourceOutput,
           deploymentGroup: ssSdg
         }),
       ]
     });
 
+    //Output
+    new cdk.CfnOutput(this, 'LoadBalancerDNS', {
+      value: ssLb.loadBalancerDnsName
+    });
+    
+    
   }
 }
