@@ -65,7 +65,7 @@ US West (Oregon)                https://aws-codedeploy-us-west-2.s3.amazonaws.co
 
 Build stack
 ===========
-npm run Build
+npm run build
 
 Synthesize and deploy
 =====================
