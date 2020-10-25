@@ -1,0 +1,77 @@
+Install VS code
+===============
+https://code.visualstudio.com/download
+
+Download Git SCM
+================
+https://git-scm.com/
+
+Download node
+=============
+https://nodejs.org/en/download/
+
+Download AWS CLI V2
+===================
+https://awscli.amazonaws.com/AWSCLIV2.msi
+
+Configure AWS CLI
+=================
+aws configure
+
+Create project directory
+========================
+md cdk-asg-loadbalancer
+cd cdk-asg-loadbalancer
+
+Install necessary packages
+==========================
+npm install -g typescript
+npm install -g aws-cdk
+cdk --version
+
+Create a CDK project
+====================
+cdk init app --language typescript
+
+Install CDK modules
+===================
+npm install @aws-cdk/core @aws-cdk/aws-iam @aws-cdk/aws-ec2 @aws-cdk/aws-autoscaling 
+@aws-cdk/aws-elasticloadbalancingv2 @aws-cdk/aws-codedeploy @aws-cdk/aws-s3 
+@aws-cdk/aws-codepipeline @aws-cdk/aws-codepipeline-actions
+
+npm update
+
+Add code
+========
+copy and paste cdk-load-balancer-stack.ts
+copy paste cdk-load-balancer.ts
+add assets/boot.ps1
+
+Create bucket for code deploy agent
+===================================
+Create S3 bucket code-deploy-agent-bucket and copy the msi from one of the following links to the bucket
+
+Region name	                    Download link
+-----------                     -------------
+US East (Ohio)                  https://aws-codedeploy-us-east-2.s3.amazonaws.com/latest/codedeploy-agent.msi
+US East (N. Virginia)           https://aws-codedeploy-us-east-1.s3.amazonaws.com/latest/codedeploy-agent.msi
+US West (N. California)         https://aws-codedeploy-us-west-1.s3.amazonaws.com/latest/codedeploy-agent.msi
+US West (Oregon)                https://aws-codedeploy-us-west-2.s3.amazonaws.com/latest/codedeploy-agent.msi
+
+Build stack
+===========
+npm run Build
+
+Synthesize and deploy
+=====================
+cdk synth (optional: cdk deploy calls it intrinsically)
+cdk deploy --context Suffix=<for example, client name>
+
+Comment S3 endpoint portion 
+===========================
+Not required after the first deploy, as only one S3 endpoint is required for all S3 operations from all stacks 
+
+Destroy (WARNING: THIS SHOULD NOT BE RUN UNLESS YOU WANT TO CREATE A COMPLETELY NEW STACK FOR THE SAME CLIENT)
+==============================================================================================================
+cdk destroy --context Suffix=<for example, client name>
+

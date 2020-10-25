@@ -43,9 +43,9 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
     });
 
     //S3 endpoint - not required to execute after first deploy
-    // ssVpc.addGatewayEndpoint('GatewayEndpoint',{
-    //   service: GatewayVpcEndpointAwsService.S3
-    // });
+    ssVpc.addGatewayEndpoint('GatewayEndpoint',{
+      service: GatewayVpcEndpointAwsService.S3
+    });
 
     //http
     const httpPort = new ec2.Port({
