@@ -5,7 +5,7 @@ import * as autoscaling from '@aws-cdk/aws-autoscaling';
 import * as elbv2 from '@aws-cdk/aws-elasticloadbalancingv2';
 import * as Codedeploy from '@aws-cdk/aws-codedeploy';
 import { AutoScalingGroup } from '@aws-cdk/aws-autoscaling';
-import { Protocol, SubnetType, Vpc, WindowsVersion } from '@aws-cdk/aws-ec2';
+import { GatewayVpcEndpointAwsService, Protocol, SubnetType, Vpc, WindowsVersion } from '@aws-cdk/aws-ec2';
 import { Aws, CfnOutput, CfnParameter, Tag } from '@aws-cdk/core';
 import { ApplicationProtocol } from '@aws-cdk/aws-elasticloadbalancingv2';
 import { ServerDeploymentConfig } from '@aws-cdk/aws-codedeploy';
@@ -41,6 +41,11 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
     const ssVpc = ec2.Vpc.fromLookup(this, 'VPC' + this.node.tryGetContext('Suffix'), {
       isDefault: true
     });
+
+    //S3 endpoint - not required to execute after first deploy
+    // ssVpc.addGatewayEndpoint('GatewayEndpoint',{
+    //   service: GatewayVpcEndpointAwsService.S3
+    // });
 
     //http
     const httpPort = new ec2.Port({
@@ -128,8 +133,12 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
     });
 
     //s3 bucket to store our code
-    const ssBucket = s3.Bucket.fromBucketAttributes(this, 'SourceBucket' + this.node.tryGetContext('Suffix'), {
-      bucketName: 'source-bucket-for-index-app',
+    // const ssBucket = s3.Bucket.fromBucketAttributes(this, 'SourceBucket' + this.node.tryGetContext('Suffix'), {
+    //   bucketName: 'source-bucket-for-index-app',
+    // });
+    const ssBucket = new s3.Bucket(this, 'SourceBucket' + this.node.tryGetContext('Suffix'), {
+      bucketName: 'source-bucket' + '-' + (this.node.tryGetContext('Suffix')).toLowerCase(),
+      versioned: true
     });
 
     //CodePipeline
@@ -139,7 +148,7 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
     const ssSourceOutput = new codepipeline.Artifact();
     const ssSourceAction = new codepipelineactions.S3SourceAction({
       bucket: ssBucket,
-      bucketKey: 'deployment/source.zip',
+      bucketKey: 'source.zip',
       actionName: 'S3Source' + this.node.tryGetContext('Suffix'),
       output: ssSourceOutput,
      })
