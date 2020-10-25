@@ -29,6 +29,11 @@ npm install -g typescript
 npm install -g aws-cdk
 cdk --version
 
+Install extensions
+==================
+AWS Toolkit
+Powershell
+
 Create a CDK project
 ====================
 cdk init app --language typescript
