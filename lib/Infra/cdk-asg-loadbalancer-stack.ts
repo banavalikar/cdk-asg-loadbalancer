@@ -51,12 +51,12 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
     });
 
     //RDP
-    const rdpPort = new ec2.Port({
-      protocol: ec2.Protocol.TCP,
-      fromPort: 3389,
-      toPort: 3389,
-      stringRepresentation: '3389-3389'
-    });
+    // const rdpPort = new ec2.Port({
+    //   protocol: ec2.Protocol.TCP,
+    //   fromPort: 3389,
+    //   toPort: 3389,
+    //   stringRepresentation: '3389-3389'
+    // });
 
     //Security
     const lbSg = new ec2.SecurityGroup(this, 'lbSg' + this.node.tryGetContext('Suffix'), {
@@ -74,7 +74,7 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
     });
 
     instanceSg.addIngressRule(lbSg, httpPort);
-    instanceSg.addIngressRule(ec2.Peer.anyIpv4(), rdpPort);
+    //instanceSg.addIngressRule(ec2.Peer.anyIpv4(), rdpPort);
 
     //Auto scaling
     const ssAsg = new autoscaling.AutoScalingGroup(this, 'Asg' + this.node.tryGetContext('Suffix'),{
@@ -128,9 +128,6 @@ export class CdkAsgLoadbalancerStack extends cdk.Stack {
     });
 
     //s3 bucket to store our code
-    // const ssBucket = s3.Bucket.fromBucketAttributes(this, 'SourceBucket' + this.node.tryGetContext('Suffix'), {
-    //   bucketName: 'source-bucket-for-index-app',
-    // });
     const ssBucket = new s3.Bucket(this, 'SourceBucket' + this.node.tryGetContext('Suffix'), {
       bucketName: 'source-bucket' + '-' + (this.node.tryGetContext('Suffix')).toLowerCase(),
       versioned: true
