@@ -80,3 +80,7 @@ Destroy (WARNING: THIS SHOULD NOT BE RUN UNLESS YOU WANT TO CREATE A COMPLETELY 
 ==============================================================================================================
 cdk destroy --context Suffix=<for example, client name>
 
+URL rewrite and .Net 4.7
+========================
+https://weblog.west-wind.com/posts/2017/may/25/automating-iis-feature-installation-with-powershell
+
