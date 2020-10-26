@@ -56,6 +56,10 @@ Create bucket for code deploy agent
 ===================================
 Create S3 bucket code-deploy-agent-bucket and copy the msi from one of the following links to the bucket
 
+Create S3 endpoint in the VPC
+=============================
+This is to block any public internet traffic between S3 and VPC. Endpoint will use AWS network.
+
 Region name	                    Download link
 -----------                     -------------
 US East (Ohio)                  https://aws-codedeploy-us-east-2.s3.amazonaws.com/latest/codedeploy-agent.msi
@@ -71,10 +75,6 @@ Synthesize and deploy
 =====================
 cdk synth (optional: cdk deploy calls it intrinsically)
 cdk deploy --context Suffix=<for example, client name>
-
-Comment S3 endpoint portion 
-===========================
-Not required after the first deploy, as only one S3 endpoint is required for all S3 operations from all stacks 
 
 Destroy (WARNING: THIS SHOULD NOT BE RUN UNLESS YOU WANT TO CREATE A COMPLETELY NEW STACK FOR THE SAME CLIENT)
 ==============================================================================================================
