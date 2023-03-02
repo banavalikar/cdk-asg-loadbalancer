@@ -8,7 +8,7 @@ const app = new cdk.App();
 new CdkAsgLoadbalancerStack(app, 'CdkAsgLoadbalancerStack' + '-' + app.node.tryGetContext('Suffix'),
   {
     env: {
-      account: '093518319188',
+      account: 'xxxxxxxxxxxx',
       region: 'eu-west-2'
     }
   });
