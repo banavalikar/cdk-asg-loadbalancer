@@ -1,5 +1,5 @@
 {
-  "vpc-provider:account=093518319188:filter.isDefault=true:region=eu-west-2:returnAsymmetricSubnets=true": {
+  "vpc-provider:account=xxxxxxxxxxxx:filter.isDefault=true:region=eu-west-2:returnAsymmetricSubnets=true": {
     "vpcId": "vpc-0293cdee8a619f671",
     "vpcCidrBlock": "172.31.0.0/16",
     "availabilityZones": [],
